@@ -1,21 +1,40 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class CharacterControl : MonoBehaviour {
+public class CharacterControl : CombatStats {
 
     public GameObject cube;
 
     public Vector3 startMarker;
     public Vector3 endMarker;
-    public float speed = 20.0F;
-    public float otherSpeed = 1f;
-    private float startTime;
-    private float journeyLength;
+    public float speed = 8.0F;
     private CharacterController controller;
 
     private const float STOP_THRESHOLD = 0.5f;
+    private const float GRAVITY = 700f;
 
     private Vector3 moveDirection = Vector3.zero;
+
+    public GameObject moveTarget;
+    public GameObject itemTarget;
+    private NavMeshAgent agent;
+    private float itemRange;
+    private PlayerState playerState = PlayerState.idle;
+
+
+    //this is your object that you want to have the UI element hovering over
+    public GameObject WorldObject;
+
+    //this is the ui element
+    public RectTransform rectTransform;
+
+    enum PlayerState
+    {
+        idle,
+        walk,
+        combat,
+        pickup
+    }
     // Use this for initialization
     void Start () {
         controller = GetComponent<CharacterController>();
@@ -23,14 +42,16 @@ public class CharacterControl : MonoBehaviour {
         startMarker = transform.position;
         endMarker = transform.position;
 
-        startTime = Time.time;
-        journeyLength = Vector3.Distance(startMarker, endMarker);
+        agent = GetComponent<NavMeshAgent>();
+        agent.updateRotation = false;
+        moveTarget.transform.position = transform.position;
+        itemRange = 2.3f;
     }
-	
-	// Update is called once per frame
-	void Update ()
+
+    void Update()
     {
-        Vector3 noHeightEndMarker;
+        agent.SetDestination(moveTarget.transform.position);
+
         if (Input.GetMouseButtonDown(1))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -40,40 +61,59 @@ public class CharacterControl : MonoBehaviour {
             {
                 Debug.DrawLine(ray.origin, hit.point, Color.red, 2);
 
+                if(hit.transform.tag == "pickup")
+                {
+                    playerState = PlayerState.pickup;
+                    itemTarget = hit.transform.gameObject;
+                } else if(hit.transform.tag == "combat")
+                {
+                    playerState = PlayerState.combat;
+                    EnemyTarget = hit.transform.gameObject;
+                } else
+                {
+                    playerState = PlayerState.walk;
+                }
+
+
                 startMarker = transform.position;
                 endMarker = hit.point;
                 endMarker.y = startMarker.y;
-                //startMarker = transform.position;
-                //endMarker = hit.point;
-                //endMarker.y = startMarker.y;
-                //startTime = Time.time;
-                //journeyLength = Vector3.Distance(startMarker, endMarker);
-                //transform.position = hit.point;
-                UpdateTargetDir();
-                Instantiate(cube, endMarker, Quaternion.identity);
+
+                moveTarget.transform.position = endMarker;
+                //UpdateTargetDir();
             }
-
         }
 
-        UpdateTargetDir();
-
-        if (Mathf.Abs(transform.position.x - endMarker.x) > STOP_THRESHOLD || Mathf.Abs(transform.position.z - endMarker.z) > STOP_THRESHOLD)
+        if(playerState == PlayerState.pickup && Vector3.Distance(transform.position, itemTarget.transform.position) < itemRange)
         {
-            controller.Move(moveDirection * Time.deltaTime);
+            Destroy(itemTarget);
+            itemTarget = null;
+            playerState = PlayerState.walk;
+            //ConvertToUI();
+        } else if(playerState == PlayerState.combat)
+        {
+            Attack();
+        } else if(playerState == PlayerState.walk)
+        {
+            if (agent.velocity.magnitude <= 0.1f)
+            {
+                playerState = PlayerState.idle;
+            }
         }
 
-        //float distCovered = (Time.time - startTime) * speed;
-        //float fracJourney = journeyLength != 0 ? distCovered / journeyLength : 0;
-        //transform.position = Vector3.Lerp(startMarker, endMarker, fracJourney);
+
     }
 
-    void UpdateTargetDir()
+    void ConvertToUI()
     {
-        Vector3 noHeightEndMarker = endMarker - transform.position;
-        noHeightEndMarker.y = 0;
-        moveDirection = Vector3.Normalize(noHeightEndMarker);
-        moveDirection = transform.TransformDirection(moveDirection);
-        moveDirection *= otherSpeed;
 
+        Vector2 pos = WorldObject.transform.position;  // get the game object position
+        Vector2 viewportPoint = Camera.main.WorldToViewportPoint(pos);  //convert game object position to VievportPoint
+
+        // set MIN and MAX Anchor values(positions) to the same position (ViewportPoint)
+        print(viewportPoint);
+        rectTransform.anchorMin = viewportPoint;
+        rectTransform.anchorMax = viewportPoint;
     }
+
 }
