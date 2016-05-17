@@ -2,8 +2,7 @@
 using System.Collections;
 
 public class CharacterControl : CombatStats {
-
-    public GameObject cube;
+    
 
     public Vector3 startMarker;
     public Vector3 endMarker;
@@ -36,14 +35,16 @@ public class CharacterControl : CombatStats {
         pickup
     }
     // Use this for initialization
-    void Start () {
+    public override void Start () {
+        base.Start();
+        range = 4;
         controller = GetComponent<CharacterController>();
 
         startMarker = transform.position;
         endMarker = transform.position;
 
         agent = GetComponent<NavMeshAgent>();
-        agent.updateRotation = false;
+        agent.updateRotation = true;
         moveTarget.transform.position = transform.position;
         itemRange = 2.3f;
     }
@@ -61,14 +62,14 @@ public class CharacterControl : CombatStats {
             {
                 Debug.DrawLine(ray.origin, hit.point, Color.red, 2);
 
-                if(hit.transform.tag == "pickup")
+                if(hit.transform.tag == "Pickup")
                 {
                     playerState = PlayerState.pickup;
                     itemTarget = hit.transform.gameObject;
-                } else if(hit.transform.tag == "combat")
+                } else if(hit.transform.tag == "Combat")
                 {
                     playerState = PlayerState.combat;
-                    EnemyTarget = hit.transform.gameObject;
+                    enemyTarget = hit.transform.parent.gameObject;
                 } else
                 {
                     playerState = PlayerState.walk;
@@ -92,7 +93,24 @@ public class CharacterControl : CombatStats {
             //ConvertToUI();
         } else if(playerState == PlayerState.combat)
         {
-            Attack();
+            if (enemyTarget)
+            {
+                if (Vector3.Distance(transform.position, enemyTarget.transform.position) < enemyTarget.GetComponent<EnemyAttack>().objectWidth + objectWidth)
+                {
+                    moveTarget.transform.position = transform.position;
+                }
+                if (enemyTarget.GetComponent<EnemyAttack>().currentHealth > 0)
+                {
+                    Attack();
+                }
+                else
+                {
+                    playerState = PlayerState.walk;
+                }
+            } else
+            {
+                playerState = PlayerState.walk;
+            }
         } else if(playerState == PlayerState.walk)
         {
             if (agent.velocity.magnitude <= 0.1f)

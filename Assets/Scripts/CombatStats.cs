@@ -1,95 +1,61 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+
 public class CombatStats : MonoBehaviour
 {
-    private int maxHealth;
-    public int MaxHealth
-    {
-        get
-        {
-            return maxHealth;
-        }
-        set
-        {
-            maxHealth = value;
-        }
-    }
+    public int maxHealth = 100;
+    public int currentHealth;
+    public int damage = 10;
+    public float range = 2;
+    public float attackRate = 1;
+    public float objectWidth = 1f;
 
-    private int currentHealth;
-    public int CurrentHealth
-    {
-        get
-        {
-            return currentHealth;
-        }
-        set
-        {
-            currentHealth = value;
-        }
-    }
-    private int damage;
-    public int Damage
-    {
-        get
-        {
-            return damage;
-        }
-        set
-        {
-            damage = value;
-        }
-    }
+    public GameObject enemyTarget;
+    private float lastTimeAttacked;
 
-    private float range;
-    public float Range
+    public virtual void Start()
     {
-        get
-        {
-            return range;
-        }
-        set
-        {
-            range = value;
-        }
-    }
-
-    private GameObject enemyTarget;
-    public GameObject EnemyTarget
-    {
-        get
-        {
-            return enemyTarget;
-        }
-        set
-        {
-            enemyTarget = value;
-        }
-    }
-
-
-    void Start()
-    {
-        maxHealth = 100;
         currentHealth = maxHealth;
-        damage = 10;
-        range = 10;
     }
 
     public void Attack()
     {
-        if (enemyTarget != null && enemyTarget.GetComponent<CombatStats>() && Vector3.Distance(transform.position, enemyTarget.transform.position) < range)
+        if (Time.time - lastTimeAttacked > attackRate && enemyTarget != null && enemyTarget.GetComponent<EnemyAttack>() && Vector3.Distance(transform.position, enemyTarget.transform.position) < range)
         {
-            enemyTarget.GetComponent<CombatStats>().TakeDamage(damage);
+            lastTimeAttacked = Time.time;
+            print("take damage");
+            enemyTarget.GetComponent<EnemyAttack>().TakeDamage(damage);
         }
+
     }
 
     public void TakeDamage(int damageTaken)
     {
         currentHealth -= damageTaken;
+        if(currentHealth <= 0)
+        {
+            Death();
+        }
     }
+
+    //void OnDrawGizmosSelected()
+    //{
+    //    Gizmos.color = Color.red;
+    //    Gizmos.DrawSphere(transform.position, 1);
+
+    //    Gizmos.color = Color.blue;
+    //    Gizmos.DrawSphere(enemyTarget.transform.position, 1);
+    //}
 
     public void Death()
     {
-        print("GoodBye");
+        GetComponent<EnemyAttack>().ItemDrop(new Vector3(transform.position.x, 0, transform.position.z));
+        Destroy(transform.gameObject);
     }
+
+}
+public interface Combat
+{
+    void ItemDrop(Vector3 dropLocation);
 }
