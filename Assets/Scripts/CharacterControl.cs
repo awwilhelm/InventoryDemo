@@ -18,20 +18,27 @@ public class CharacterControl : CombatStats {
     public GameObject itemTarget;
     private NavMeshAgent agent;
     private float itemRange;
-    private PlayerState playerState = PlayerState.idle;
-
+    public PlayerState playerState = PlayerState.idle;
+    private Transform playerMesh;
+    private float idleTimeMin = 1;
+    private float lastidleTime;
+    public LayerMask ignoreWhenNavigating;
+    private GameObject animationholder;
 
     //this is your object that you want to have the UI element hovering over
     public GameObject WorldObject;
 
     //this is the ui element
     public RectTransform rectTransform;
+    Vector3 extension = new Vector3();
 
-    enum PlayerState
+    [System.Serializable]
+    public enum PlayerState
     {
         idle,
         walk,
         combat,
+        inCombat,
         pickup
     }
     // Use this for initialization
@@ -39,30 +46,53 @@ public class CharacterControl : CombatStats {
         base.Start();
         range = 4;
         controller = GetComponent<CharacterController>();
+        animationholder = GameObject.Find("AnimationHolder");
 
         startMarker = transform.position;
         endMarker = transform.position;
 
         agent = GetComponent<NavMeshAgent>();
-        agent.updateRotation = true;
+        agent.updateRotation = false;
         moveTarget.transform.position = transform.position;
         itemRange = 2.3f;
+        playerMesh = transform.FindChild("Mesh");
+
+        lastidleTime = Time.time;
     }
 
     void Update()
     {
         agent.SetDestination(moveTarget.transform.position);
+        if(playerState != PlayerState.idle)
+        {
+            if (playerState == PlayerState.combat)
+            {
+                Vector3 relativePos = moveTarget.transform.position - playerMesh.transform.position;
+                relativePos.y = 0;
+                Quaternion rotation = Quaternion.LookRotation(relativePos);
+                playerMesh.rotation = rotation;
+            }
+            else
+            {
+                Vector3 moveTargetTempPos = new Vector3(moveTarget.transform.position.x + extension.x, moveTarget.transform.position.y, moveTarget.transform.position.z + extension.z);
+                Vector3 relativePos = moveTargetTempPos - playerMesh.transform.position;
+                relativePos.y = 0;
+                Quaternion rotation = Quaternion.LookRotation(relativePos);
+                playerMesh.rotation = rotation;
+            }
+        }
 
         if (Input.GetMouseButtonDown(1))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit, 100))
+            if (Physics.Raycast(ray, out hit, 100, ignoreWhenNavigating))
             {
                 Debug.DrawLine(ray.origin, hit.point, Color.red, 2);
+                lastidleTime = Time.time;
 
-                if(hit.transform.tag == "Pickup")
+                if (hit.transform.tag == "Pickup")
                 {
                     playerState = PlayerState.pickup;
                     itemTarget = hit.transform.gameObject;
@@ -74,34 +104,34 @@ public class CharacterControl : CombatStats {
                 {
                     playerState = PlayerState.walk;
                 }
-
-
+                
+                HandleAnimation();
                 startMarker = transform.position;
                 endMarker = hit.point;
                 endMarker.y = startMarker.y;
 
                 moveTarget.transform.position = endMarker;
+                extension = (moveTarget.transform.position - playerMesh.transform.position).normalized * 5;
                 //UpdateTargetDir();
             }
         }
-
+        print(playerState);
         if(playerState == PlayerState.pickup && Vector3.Distance(transform.position, itemTarget.transform.position) < itemRange)
         {
             Destroy(itemTarget);
             itemTarget = null;
             playerState = PlayerState.walk;
             //ConvertToUI();
-        } else if(playerState == PlayerState.combat)
+        } else if(playerState == PlayerState.combat || playerState == PlayerState.inCombat)
         {
             if (enemyTarget)
             {
-                if (Vector3.Distance(transform.position, enemyTarget.transform.position) < enemyTarget.GetComponent<EnemyAttack>().objectWidth + objectWidth)
-                {
-                    moveTarget.transform.position = transform.position;
-                }
                 if (enemyTarget.GetComponent<EnemyAttack>().currentHealth > 0)
                 {
-                    Attack();
+                    if(Attack())
+                    {
+                        playerState = PlayerState.inCombat;
+                    }
                 }
                 else
                 {
@@ -115,10 +145,15 @@ public class CharacterControl : CombatStats {
         {
             if (agent.velocity.magnitude <= 0.1f)
             {
-                playerState = PlayerState.idle;
+                if(Time.time - lastidleTime > idleTimeMin)
+                {
+                    playerState = PlayerState.idle;
+
+                    HandleAnimation();
+                    lastidleTime = Time.time;
+                }
             }
         }
-
 
     }
 
@@ -132,6 +167,22 @@ public class CharacterControl : CombatStats {
         print(viewportPoint);
         rectTransform.anchorMin = viewportPoint;
         rectTransform.anchorMax = viewportPoint;
+    }
+
+    void HandleAnimation()
+    {
+        if (playerState == PlayerState.walk || playerState == PlayerState.combat || playerState == PlayerState.pickup)
+        {
+            GetComponent<Animator>().CrossFade("Walk", 0.5f, 1);
+        }
+        else if (playerState == PlayerState.inCombat)
+        {
+            //GetComponent<Animator>().SetTrigger(animationholder.GetComponent<Weaponless>()._atack_0_Tr);
+        }
+        else if (playerState == PlayerState.idle)
+        {
+            GetComponent<Animator>().CrossFade("Idle", 0.5f, 1);
+        }
     }
 
 }

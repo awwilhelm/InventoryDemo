@@ -5,20 +5,25 @@ public class BaseAnimController : MonoBehaviour
 {
 
 	[SerializeField]
-	protected string
+	public string
 		_runTr, _atack_0_Tr, _dieTr, _gd_Tr;
     
-    protected Animator _anim;
+    public Animator _anim;
 
 	private void Awake ()
 	{
 		_anim = GetComponent <Animator> ();
 	}
 
+    public void SetAnimator(Animator anim)
+    {
+        _anim = anim;
+    }
+
 
 	private void OnGUI ()
 	{
-		BaseButtons ();
+		//BaseButtons ();
 	}
 
 	protected virtual void BaseButtons ()

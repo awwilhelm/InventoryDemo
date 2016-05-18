@@ -19,7 +19,7 @@ public class CombatStats : MonoBehaviour
         currentHealth = maxHealth;
     }
 
-    public void Attack()
+    public bool Attack()
     {
         if (Time.time - lastTimeAttacked > attackRate && enemyTarget != null && enemyTarget.GetComponent<EnemyAttack>() && Vector3.Distance(transform.position, enemyTarget.transform.position) < range)
         {
@@ -27,7 +27,7 @@ public class CombatStats : MonoBehaviour
             print("take damage");
             enemyTarget.GetComponent<EnemyAttack>().TakeDamage(damage);
         }
-
+        return Vector3.Distance(transform.position, enemyTarget.transform.position) < range;
     }
 
     public void TakeDamage(int damageTaken)

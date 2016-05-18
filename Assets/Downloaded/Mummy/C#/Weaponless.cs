@@ -4,7 +4,7 @@ using System.Collections;
 public class Weaponless : BaseAnimController
 {
 	[SerializeField]
-	private string
+	public string
 		_lookInStumik, _walk;
 
 	protected override void BaseButtons ()
