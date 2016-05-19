@@ -20,7 +20,7 @@ public class CharacterControl : CombatStats {
     private float itemRange;
     public PlayerState playerState = PlayerState.idle;
     private Transform playerMesh;
-    private float idleTimeMin = 1;
+    private float idleTimeMin = 0.3f;
     private float lastidleTime;
     public LayerMask ignoreWhenNavigating;
     private GameObject animationholder;
@@ -31,7 +31,9 @@ public class CharacterControl : CombatStats {
     //this is the ui element
     public RectTransform rectTransform;
     Vector3 extension = new Vector3();
-
+    bool callAttack = true;
+    float attackSpeed = 0.5f;
+    float lastTimeAttackedAnim;
     [System.Serializable]
     public enum PlayerState
     {
@@ -115,7 +117,6 @@ public class CharacterControl : CombatStats {
                 //UpdateTargetDir();
             }
         }
-        print(playerState);
         if(playerState == PlayerState.pickup && Vector3.Distance(transform.position, itemTarget.transform.position) < itemRange)
         {
             Destroy(itemTarget);
@@ -131,6 +132,7 @@ public class CharacterControl : CombatStats {
                     if(Attack())
                     {
                         playerState = PlayerState.inCombat;
+                        //HandleAnimation();
                     }
                 }
                 else
@@ -149,11 +151,24 @@ public class CharacterControl : CombatStats {
                 {
                     playerState = PlayerState.idle;
 
-                    HandleAnimation();
+                    //HandleAnimation();
                     lastidleTime = Time.time;
                 }
             }
         }
+        //print(playerState);
+        if (!agent.pathPending)
+        {
+            if (agent.remainingDistance <= agent.stoppingDistance)
+            {
+                if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
+                {
+                    //playerState = PlayerState.idle;
+                }
+            }
+        }
+        
+        HandleAnimation();
 
     }
 
@@ -173,15 +188,31 @@ public class CharacterControl : CombatStats {
     {
         if (playerState == PlayerState.walk || playerState == PlayerState.combat || playerState == PlayerState.pickup)
         {
-            GetComponent<Animator>().CrossFade("Walk", 0.5f, 1);
+            CallPlayerAnimation("Run");
         }
         else if (playerState == PlayerState.inCombat)
         {
-            //GetComponent<Animator>().SetTrigger(animationholder.GetComponent<Weaponless>()._atack_0_Tr);
+            CallPlayerAnimation("Atack");
         }
         else if (playerState == PlayerState.idle)
         {
-            GetComponent<Animator>().CrossFade("Idle", 0.5f, 1);
+            CallPlayerAnimation("Idle");
+        }
+    }
+
+
+    void CallPlayerAnimation(string animationName)
+    {
+        Animator anim = GetComponent<Animator>();
+        anim.SetBool("Idle", false);
+        anim.SetBool("Walk", false);
+        anim.SetBool("Atack", false);
+        anim.SetBool("Die", false);
+        anim.SetBool("Run", false);
+        if(animationName != "Clear")
+        {
+            anim.SetBool(animationName, true);
+
         }
     }
 

@@ -21,13 +21,15 @@ public class CombatStats : MonoBehaviour
 
     public bool Attack()
     {
+        bool attacked = false;
         if (Time.time - lastTimeAttacked > attackRate && enemyTarget != null && enemyTarget.GetComponent<EnemyAttack>() && Vector3.Distance(transform.position, enemyTarget.transform.position) < range)
         {
             lastTimeAttacked = Time.time;
-            print("take damage");
             enemyTarget.GetComponent<EnemyAttack>().TakeDamage(damage);
+            attacked = true;
         }
-        return Vector3.Distance(transform.position, enemyTarget.transform.position) < range;
+        //return Vector3.Distance(transform.position, enemyTarget.transform.position) < range;
+        return attacked;
     }
 
     public void TakeDamage(int damageTaken)

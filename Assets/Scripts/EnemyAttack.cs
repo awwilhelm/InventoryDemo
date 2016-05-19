@@ -26,7 +26,7 @@ public class EnemyAttack : CombatStats, Combat {
             float rand = Random.Range(0f, 1f);
             if(dropItems[i].dropPercentage > rand)
             {
-                Instantiate(dropItems[i].obj, dropLocation, dropItems[0].obj.transform.rotation);
+                Instantiate(dropItems[i].obj, dropLocation, dropItems[i].obj.transform.rotation);
             }
         }
     }
